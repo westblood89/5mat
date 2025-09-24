@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matematik Ligi Yönetim Sistemi - 5. Sınıflar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .qualified { background-color: #dcfce7 !important; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <div class="flex items-center justify-center mb-4">
+        <div class="text-4xl mr-4">🎒</div>
+        <div class="text-center">
+          <h1 class="text-3xl font-bold text-indigo-800 mb-2">🏆 Matematik Ligi</h1>
+          <div class="text-center">
+            <span class="text-gray-600 font-medium text-xl">5. Sınıflar Grup Aşaması</span>
+          </div>
+        </div>
+        <div class="text-4xl ml-4">📚</div>
+      </div>
+      <div class="flex justify-center items-center space-x-4 text-2xl">
+        <span>✏️</span><span>📝</span><span>🧮</span><span>📐</span><span>📏</span>
+        <span>🔢</span><span>➕</span><span>➖</span><span>✖️</span><span>➗</span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white rounded-lg shadow-lg mb-6">
+      <div class="flex flex-wrap border-b">
+        <button onclick="showTab('standings')" class="tab-btn px-4 py-3 font-medium text-indigo-600 border-b-2 border-indigo-600">📊 Puan Durumu</button>
+        <button onclick="showTab('fixtures')" class="tab-btn px-4 py-3 font-medium text-gray-500 hover:text-indigo-600">📅 Fikstür</button>
+      </div>
+    </div>
+
+    <!-- Standings Tab -->
+    <div id="standings" class="tab-content active">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Puan Durumu</h2>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Grup Seç:</label>
+          <select id="standingsGroupSelect" onchange="showStandings()" class="border border-gray-300 rounded-lg px-3 py-2">
+            <option value="">Grup seçin...</option>
+          </select>
+        </div>
+        <div id="standingsContent"></div>
+      </div>
+    </div>
+
+    <!-- Fixtures Tab -->
+    <div id="fixtures" class="tab-content">
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Fikstür ve Sonuçlar</h2>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Grup Seç:</label>
+          <select id="fixtureGroupSelect" onchange="showFixtures()" class="border border-gray-300 rounded-lg px-3 py-2">
+            <option value="">Grup seçin...</option>
+          </select>
+        </div>
+        <div class="mb-4 flex gap-2">
+          <button onclick="downloadBackup()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm">💾 Yedeği İndir</button>
+          <label class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm cursor-pointer">📤 Yedekten Yükle
+            <input type="file" id="restoreInput" accept="application/json" class="hidden" onchange="restoreFromFile(event)" />
+          </label>
+        </div>
+        <div id="fixtureContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let leagueData = { groups: {}, fixtures: {}, results: {} };
+
+    function saveData() {
+      localStorage.setItem('mathLeagueData5', JSON.stringify(leagueData));
+      createDownloadableBackup();
+    }
+
+    function loadData() {
+      const saved = localStorage.getItem('mathLeagueData5');
+      if (saved) leagueData = JSON.parse(saved);
+      populateGroupSelects();
+    }
+
+    function createDownloadableBackup() {
+      const dataStr = JSON.stringify(leagueData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      let a = document.getElementById('downloadBackup');
+      if (!a) { a = document.createElement('a'); a.id = 'downloadBackup'; a.style.display = 'none'; document.body.appendChild(a); }
+      a.href = URL.createObjectURL(dataBlob);
+      a.download = `matematik_ligi5_yedek_${new Date().toISOString().slice(0,10)}.json`;
+    }
+
+    function downloadBackup(){ const a=document.getElementById('downloadBackup'); if(a) a.click(); }
+    function restoreFromFile(ev){
+      const f = ev.target.files?.[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = () => { try { leagueData = JSON.parse(reader.result); saveData(); populateGroupSelects(); showFixtures(); showStandings(); alert('✅ Yedek yüklendi'); } catch { alert('❌ Geçersiz dosya'); } ev.target.value = ''; };
+      reader.readAsText(f);
+    }
+
+    function populateGroupSelects() {
+      const fixtureSelect = document.getElementById('fixtureGroupSelect');
+      const standingsSelect = document.getElementById('standingsGroupSelect');
+      fixtureSelect.innerHTML = '<option value="">Grup seçin...</option>';
+      standingsSelect.innerHTML = '<option value="">Grup seçin...</option>';
+      Object.keys(leagueData.groups).forEach(g => {
+        const o1 = document.createElement('option'); o1.value = g; o1.textContent = g; fixtureSelect.appendChild(o1);
+        const o2 = document.createElement('option'); o2.value = g; o2.textContent = g; standingsSelect.appendChild(o2);
+      });
+    }
+
+    function showFixtures(){ document.getElementById('fixtureContent').innerHTML = '<p class="text-gray-500">Fikstür gösterimi eklenecek</p>'; }
+    function showStandings(){ document.getElementById('standingsContent').innerHTML = '<p class="text-gray-500">Puan durumu hesaplama eklenecek</p>'; }
+
+    function showTab(tabName){ document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); document.getElementById(tabName).classList.add('active'); }
+    document.addEventListener('DOMContentLoaded', ()=>{ loadData(); createDownloadableBackup(); });
+  </script>
+</body>
+</html>
